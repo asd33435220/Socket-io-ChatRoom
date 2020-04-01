@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+    <!-- Compiled and minified CSS -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
+    />
+
+    <meta name="viewpoint" content="width-device-width, initial-scale=1.0" />
+    <title>Let's Chat!</title>
+  </head>
+
+  <body>
+    <nav>
+      <div class="nav-wrapper ">
+        <a href="#" class="brand-logo center"> Let's Chat!</a>
+      </div>
+    </nav>
+
+    <div class="row">
+      <!-- connected user list -->
+      <div class="col  s4">
+        <h3 class="flow-text center teal-text text-lighten-1">
+          CONNECTED USER
+        </h3>
+        <ul class="collection" id="user-list"></ul>
+      </div>
+      <!-- message area -->
+      <div id="chat-col" class="col s8" style="display:none">
+        <div class="card blue-grey darken-1">
+          <div class="card-content white-text" id="messages"></div>
+          <div class="card-action white">
+            <!-- message from -->
+            <form id="message-form">
+              <div class="input-field">
+                <textarea
+                  type="text"
+                  id="textarea"
+                  class="materialize-textarea"
+                ></textarea>
+                <label class="active" for="textarea">MESSAGE</label>
+              </div>
+
+              <div class="right-align">
+                <button
+                  class="btn waves-effect waves-light btn-small"
+                  type="submit"
+                  name="action"
+                >
+                  SEND
+                  <i class="material-icons right">send</i>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      <!-- login area -->
+      <div id="login-col" class="col s8" style="display:block">
+        <div class="card">
+          <div class="card-content">
+            <span class="card-title teal-text text-lighten-1"
+              >Give yourself a nickname</span
+            >
+            <!-- login form -->
+            <form id="login-form">
+              <div class="input-field">
+                <input type="text" id="name" />
+                <label class="active" for="name">Name</label>
+              </div>
+              <div class="right-align">
+                <button
+                  class="btn waves-effect waves-light btn-small"
+                  type="submit"
+                  name="action"
+                >
+                  Let's Chat! <i class="material-icons right">chat</i>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compiled and minified JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+    <script>
+      (function() {
+        const loginForm = document.querySelector("#login-form");
+        const messageForm = document.querySelector("#message-form");
+        const userList = document.querySelector("#user-list");
+        const loginCol = document.querySelector("#login-col");
+        const chatCol = document.querySelector("#chat-col");
+        const messages = document.querySelector("#messages");
+        var sign = document.createElement("h4");
+        let messageList = [];
+        sign.innerText = "Let's chat!";
+        messages.appendChild(sign);
+        //连接 Socket.io
+        var socket = io({ timeout: 5000, "connect timeout": 5000 });
+        if (socket !== undefined) {
+          console.log("成功连接至socket");
+        }
+        //更新用户列表
+        socket.on("loadUser", users => {
+          userList.innerHTML = "";
+          users.forEach(user => {
+            var userLi = document.createElement("li");
+            userLi.setAttribute("class", "collection-item");
+            userLi.innerHTML = `<h6 class="center">${user}</h6>`;
+            userList.insertBefore(userLi, userList.firstChild);
+          });
+        });
+        //添加聊天信息
+        socket.on("loadMsg", data => {
+          var message = document.createElement("h6");
+          message.innerText = data.name + ":" + data.msg;
+          messageList.push(message);
+          if (messageList.length > 5) {
+            let outMsg = messageList.shift();
+            messages.removeChild(outMsg);
+          }
+          messages.appendChild(message);
+        });
+        loginForm.addEventListener("submit", e => {
+          e.preventDefault();
+          const userName = document.querySelector("#name").value;
+          socket.emit("login", userName, () => {
+            loginCol.style = "display:none";
+            chatCol.style = "display:block";
+            //欢迎用户登录
+            var message = document.createElement("p");
+            message.setAttribute(
+              "class",
+              "center blue-gray-text text-lighten-2"
+            );
+            message.textContent = `Welcome ${userName} joined Chat`;
+            messages.insertBefore(message, messages.firstChild);
+          });
+        });
+        messageForm.addEventListener("submit", e => {
+          e.preventDefault();
+          const msg = document.querySelector("textarea").value.trim();
+          document.querySelector("textarea").value = "";
+          if (msg != "") socket.emit("chat message", msg);
+        });
+      })();
+    </script>
+  </body>
+</html>
